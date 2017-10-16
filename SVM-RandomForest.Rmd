@@ -1,0 +1,138 @@
+---
+title: "SVM-RandomForest-Assignment"
+author: "Thomas K John"
+date: "August 29, 2017"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Preprocessing
+### Removing the environment variables
+```{r}
+rm(list= ls(all = TRUE))
+```
+### Setting the working directory
+```{r}
+setwd("I:/DATA-SCIENCE/Insofe/Assignments/RandomForest-SVM/assignment-svm-random-forest-Thomas-K-John-master")
+```
+### Reading the file
+```{r}
+saratoga.house.data = read.csv("SaratogaHouses.csv", header = TRUE)
+```
+### Understanding the data using summary() and str()
+```{r}
+summary(saratoga.house.data)
+str(saratoga.house.data)
+```
+### Splitting the data into train and test
+```{r}
+library(caret)
+train.rows = createDataPartition(saratoga.house.data$price, p = 0.7, list = FALSE)
+train.data = saratoga.house.data[train.rows,]
+test.data = saratoga.house.data[-train.rows,]
+```
+# Random Forest Model Building
+## Creating a Basic RandomForest model
+### Creating a basic model using radom forest without tuning the parameters
+```{r}
+library(randomForest)
+rf = randomForest(price ~., data = train.data, ntree = 200, mtry = 5, importance = TRUE, proximity = TRUE, keep.forest = TRUE)
+```
+### Verifying the model
+```{r}
+print(rf)
+```
+### Number of Nodes for trees
+```{r}
+hist(treesize(rf))
+```
+### Variable Importance
+```{r}
+varImpPlot(rf, sort = TRUE)
+```
+###  Error Rates
+```{r}
+plot(rf)
+```
+### Predicting the values on training data
+```{r}
+library(DMwR)
+prediction1 = predict(rf, train.data)
+regr.eval(train.data$price, prediction1)
+```
+### Predicting the values on testing data
+```{r}
+prediction.test = predict(rf, test.data)
+regr.eval(test.data$price, prediction.test)
+```
+## Tuned RandomForest Model
+```{r}
+rf.tuned.model = tuneRF(train.data[,-1], train.data[,1], stepFactor = 0.5, plot = TRUE, ntreeTry = 200, trace = TRUE, improve = 0.05, doBest = TRUE)
+```
+### Verifying the model
+```{r}
+print(rf.tuned.model)
+```
+### Number of Nodes for trees
+```{r}
+hist(treesize(rf.tuned.model))
+```
+### Variable Importance
+```{r}
+varImpPlot(rf.tuned.model, sort = TRUE)
+```
+###  Error Rates
+```{r}
+plot(rf.tuned.model)
+```
+### Predicting the values on training data
+```{r}
+prediction2 = predict(rf.tuned.model, train.data)
+regr.eval(train.data$price, prediction2)
+```
+### Predicting the values on testing data
+```{r}
+prediction2.test = predict(rf.tuned.model, test.data)
+regr.eval(test.data$price, prediction2.test)
+```
+# Support Vector Machines Model
+```{r}
+library(e1071)
+model = svm(x = train.data[,!train.data$price], y = train.data$price, type = "eps-regression", kernel = "linear", cost = 20, gamma = 0.2)
+summary(model)
+```
+### Summary of the model
+```{r}
+summary(model)
+```
+### Predict the values on train data and measuring the errors
+```{r}
+pred.train = predict(model, train.data[,!train.data$price])
+regr.eval(train.data$price, pred.train)
+```
+### Tuning the SVM model
+```{r}
+tuneResult = tune(svm, train.data[,!train.data$price], train.data$price, ranges = list(gamma = 10^(-6:-1), cost = seq(1,20,2), kernel = c("linear")))
+print(tuneResult)
+svm.tuned.model = tuneResult$best.model
+```
+### Predicting the values on training data
+```{r}
+prediction3 = predict(svm.tuned.model, train.data[,!train.data$price])
+regr.eval(train.data$price, prediction3)
+```
+### Predicting the values on testing data
+```{r}
+prediction3.test = predict(svm.tuned.model, test.data[,!test.data$price])
+regr.eval(test.data$price, prediction3.test)
+```
+
+
+
+
